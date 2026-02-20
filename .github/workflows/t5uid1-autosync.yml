@@ -2,6 +2,11 @@ name: T5UID1 auto-sync
 
 on:
   workflow_dispatch:
+    inputs:
+      t5uid1_source_branch:
+        description: "Optional override for T5UID1 source branch"
+        required: false
+        type: string
   schedule:
     - cron: "17 3 * * *"
 
@@ -11,11 +16,16 @@ permissions:
 
 jobs:
   sync:
+    concurrency:
+      group: t5uid1-autosync-${{ github.repository }}
+      cancel-in-progress: false
     runs-on: ubuntu-22.04
     env:
       TARGET_BRANCH: ${{ github.event.repository.default_branch }}
-      UPSTREAM_BRANCH: main
-      T5UID1_SOURCE_BRANCH: t5uid1-port
+      UPSTREAM_BRANCH: master
+      T5UID1_SOURCE_REMOTE: t5uid1
+      T5UID1_SOURCE_REPO: https://github.com/gbkwiatt/klipper.git
+      T5UID1_SOURCE_BRANCH: ${{ inputs.t5uid1_source_branch || 'master' }}
     steps:
       - name: Checkout target branch
         uses: actions/checkout@v4
@@ -28,16 +38,41 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Add and fetch upstream
+      - name: Add and fetch upstream and T5UID1 source
         run: |
-          git remote add upstream https://github.com/Klipper3d/klipper.git
-          git fetch upstream $UPSTREAM_BRANCH
-          git fetch origin $T5UID1_SOURCE_BRANCH
+          if git remote get-url upstream >/dev/null 2>&1; then
+            git remote set-url upstream https://github.com/Klipper3d/klipper.git
+          else
+            git remote add upstream https://github.com/Klipper3d/klipper.git
+          fi
+
+          if git remote get-url "$T5UID1_SOURCE_REMOTE" >/dev/null 2>&1; then
+            git remote set-url "$T5UID1_SOURCE_REMOTE" "$T5UID1_SOURCE_REPO"
+          else
+            git remote add "$T5UID1_SOURCE_REMOTE" "$T5UID1_SOURCE_REPO"
+          fi
+
+          git fetch upstream "$UPSTREAM_BRANCH"
+          git fetch "$T5UID1_SOURCE_REMOTE" "$T5UID1_SOURCE_BRANCH"
 
       - name: Re-apply T5UID1 patch set
         run: ./scripts/t5uid1_sync.sh
 
+      - name: Detect sync changes
+        id: changes
+        run: |
+          if git diff --quiet "origin/$TARGET_BRANCH"...HEAD; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: No changes detected
+        if: steps.changes.outputs.has_changes != 'true'
+        run: echo "No upstream/T5UID1 changes detected; skipping PR creation."
+
       - name: Create Pull Request
+        if: steps.changes.outputs.has_changes == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
           base: ${{ env.TARGET_BRANCH }}

@@ -20,15 +20,17 @@ Der Workflow läuft:
 Ablauf:
 
 1. Checkout von `TARGET_BRANCH` (Default: Repo-Default-Branch, z.B. `master`)
-2. Fetch von Upstream-Branch (`UPSTREAM_BRANCH`, Default: `main`)
+2. Fetch von Upstream-Branch (`UPSTREAM_BRANCH`, Default: `master`)
 3. Merge von Upstream in den Arbeitsstand
-4. Selektives Checkout der T5UID1-Dateien aus `T5UID1_SOURCE_BRANCH`
-5. Öffnen/Aktualisieren eines PRs `bot/t5uid1-autosync`
+4. Selektives Checkout der T5UID1-Dateien aus `T5UID1_SOURCE_REMOTE/T5UID1_SOURCE_BRANCH`
+   (Default: `t5uid1/master` → `https://github.com/gbkwiatt/klipper.git`)
+5. PR-Erstellung nur wenn es echte Änderungen gegenüber `origin/TARGET_BRANCH` gibt
+6. Öffnen/Aktualisieren eines PRs `bot/t5uid1-autosync`
 
 ## Wichtige Voraussetzung
 
-`T5UID1_SOURCE_BRANCH` muss in deinem Fork existieren und die gewünschte
-T5UID1-Implementierung enthalten (z.B. ein stabiler Branch wie `t5uid1-port`).
+Das T5UID1-Quell-Repo muss erreichbar sein und den angegebenen Branch enthalten
+(Default: `https://github.com/gbkwiatt/klipper.git`, Branch `master`).
 
 ## Anpassung
 
@@ -36,4 +38,12 @@ Du kannst Branches direkt im Workflow über die `env`-Werte ändern:
 
 - `TARGET_BRANCH`
 - `UPSTREAM_BRANCH`
+- `T5UID1_SOURCE_REMOTE`
+- `T5UID1_SOURCE_REPO`
 - `T5UID1_SOURCE_BRANCH`
+
+Für manuelle Runs (`workflow_dispatch`) gibt es zusätzlich das optionale
+Input-Feld `t5uid1_source_branch`, um den Reapply-Branch ad-hoc zu überschreiben.
+
+Der Workflow nutzt außerdem `concurrency`, damit keine parallelen Sync-Läufe
+gegeneinander arbeiten.
