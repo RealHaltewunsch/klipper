@@ -2,11 +2,11 @@
 set -euo pipefail
 
 TARGET_BRANCH="${TARGET_BRANCH:-master}"
-UPSTREAM_BRANCH="${UPSTREAM_BRANCH:-main}"
-T5UID1_SOURCE_BRANCH="${T5UID1_SOURCE_BRANCH:-t5uid1-port}"
+UPSTREAM_BRANCH="${UPSTREAM_BRANCH:-master}"
+T5UID1_SOURCE_BRANCH="${T5UID1_SOURCE_BRANCH:-master}"
 FILELIST="${FILELIST:-.github/t5uid1-sync-files.txt}"
 UPSTREAM_REMOTE="${UPSTREAM_REMOTE:-upstream}"
-ORIGIN_REMOTE="${ORIGIN_REMOTE:-origin}"
+T5UID1_SOURCE_REMOTE="${T5UID1_SOURCE_REMOTE:-t5uid1}"
 
 if [[ ! -f "$FILELIST" ]]; then
   echo "File list not found: $FILELIST" >&2
@@ -17,17 +17,14 @@ if ! git show-ref --verify --quiet "refs/remotes/$UPSTREAM_REMOTE/$UPSTREAM_BRAN
   git fetch "$UPSTREAM_REMOTE" "$UPSTREAM_BRANCH"
 fi
 
-SOURCE_REF="$ORIGIN_REMOTE/$T5UID1_SOURCE_BRANCH"
+SOURCE_REF="$T5UID1_SOURCE_REMOTE/$T5UID1_SOURCE_BRANCH"
 if ! git show-ref --verify --quiet "refs/remotes/$SOURCE_REF"; then
-  if git ls-remote --exit-code --heads "$ORIGIN_REMOTE" "$T5UID1_SOURCE_BRANCH" >/dev/null 2>&1; then
-    git fetch "$ORIGIN_REMOTE" "$T5UID1_SOURCE_BRANCH"
-  else
-    echo "Warning: missing $ORIGIN_REMOTE/$T5UID1_SOURCE_BRANCH - falling back to $TARGET_BRANCH" >&2
-    SOURCE_REF="$ORIGIN_REMOTE/$TARGET_BRANCH"
-    if ! git show-ref --verify --quiet "refs/remotes/$SOURCE_REF"; then
-      git fetch "$ORIGIN_REMOTE" "$TARGET_BRANCH"
-    fi
-  fi
+  git fetch "$T5UID1_SOURCE_REMOTE" "$T5UID1_SOURCE_BRANCH"
+fi
+
+if ! git show-ref --verify --quiet "refs/remotes/$SOURCE_REF"; then
+  echo "Missing source reference: $SOURCE_REF" >&2
+  exit 1
 fi
 
 # Rebase local sync branch state onto current upstream branch

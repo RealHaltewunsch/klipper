@@ -22,8 +22,10 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       TARGET_BRANCH: ${{ github.event.repository.default_branch }}
-      UPSTREAM_BRANCH: main
-      T5UID1_SOURCE_BRANCH: ${{ inputs.t5uid1_source_branch || 't5uid1-port' }}
+      UPSTREAM_BRANCH: master
+      T5UID1_SOURCE_REMOTE: t5uid1
+      T5UID1_SOURCE_REPO: https://github.com/gbkwiatt/klipper.git
+      T5UID1_SOURCE_BRANCH: ${{ inputs.t5uid1_source_branch || 'master' }}
     steps:
       - name: Checkout target branch
         uses: actions/checkout@v4
@@ -36,15 +38,22 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Add and fetch upstream
+      - name: Add and fetch upstream and T5UID1 source
         run: |
           if git remote get-url upstream >/dev/null 2>&1; then
             git remote set-url upstream https://github.com/Klipper3d/klipper.git
           else
             git remote add upstream https://github.com/Klipper3d/klipper.git
           fi
-          git fetch upstream $UPSTREAM_BRANCH
-          git fetch origin "$T5UID1_SOURCE_BRANCH" || true
+
+          if git remote get-url "$T5UID1_SOURCE_REMOTE" >/dev/null 2>&1; then
+            git remote set-url "$T5UID1_SOURCE_REMOTE" "$T5UID1_SOURCE_REPO"
+          else
+            git remote add "$T5UID1_SOURCE_REMOTE" "$T5UID1_SOURCE_REPO"
+          fi
+
+          git fetch upstream "$UPSTREAM_BRANCH"
+          git fetch "$T5UID1_SOURCE_REMOTE" "$T5UID1_SOURCE_BRANCH"
 
       - name: Re-apply T5UID1 patch set
         run: ./scripts/t5uid1_sync.sh
