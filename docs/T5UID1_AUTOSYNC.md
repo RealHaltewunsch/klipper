@@ -19,7 +19,7 @@ Der Workflow läuft:
 
 Ablauf:
 
-1. Checkout von `TARGET_BRANCH` (Default: `main`)
+1. Checkout von `TARGET_BRANCH` (Default: Repo-Default-Branch, z.B. `master`)
 2. Fetch von Upstream-Branch (`UPSTREAM_BRANCH`, Default: `main`)
 3. Merge von Upstream in den Arbeitsstand
 4. Selektives Checkout der T5UID1-Dateien aus `T5UID1_SOURCE_BRANCH`

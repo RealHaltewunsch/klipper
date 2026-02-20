@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TARGET_BRANCH="${TARGET_BRANCH:-main}"
+TARGET_BRANCH="${TARGET_BRANCH:-master}"
 UPSTREAM_BRANCH="${UPSTREAM_BRANCH:-main}"
 T5UID1_SOURCE_BRANCH="${T5UID1_SOURCE_BRANCH:-t5uid1-port}"
 FILELIST="${FILELIST:-.github/t5uid1-sync-files.txt}"
