@@ -16,8 +16,18 @@ fi
 if ! git show-ref --verify --quiet "refs/remotes/$UPSTREAM_REMOTE/$UPSTREAM_BRANCH"; then
   git fetch "$UPSTREAM_REMOTE" "$UPSTREAM_BRANCH"
 fi
-if ! git show-ref --verify --quiet "refs/remotes/$ORIGIN_REMOTE/$T5UID1_SOURCE_BRANCH"; then
-  git fetch "$ORIGIN_REMOTE" "$T5UID1_SOURCE_BRANCH"
+
+SOURCE_REF="$ORIGIN_REMOTE/$T5UID1_SOURCE_BRANCH"
+if ! git show-ref --verify --quiet "refs/remotes/$SOURCE_REF"; then
+  if git ls-remote --exit-code --heads "$ORIGIN_REMOTE" "$T5UID1_SOURCE_BRANCH" >/dev/null 2>&1; then
+    git fetch "$ORIGIN_REMOTE" "$T5UID1_SOURCE_BRANCH"
+  else
+    echo "Warning: missing $ORIGIN_REMOTE/$T5UID1_SOURCE_BRANCH - falling back to $TARGET_BRANCH" >&2
+    SOURCE_REF="$ORIGIN_REMOTE/$TARGET_BRANCH"
+    if ! git show-ref --verify --quiet "refs/remotes/$SOURCE_REF"; then
+      git fetch "$ORIGIN_REMOTE" "$TARGET_BRANCH"
+    fi
+  fi
 fi
 
 # Rebase local sync branch state onto current upstream branch
@@ -27,7 +37,7 @@ fi
 
 while IFS= read -r path; do
   [[ -z "$path" || "$path" =~ ^# ]] && continue
-  git checkout "$ORIGIN_REMOTE/$T5UID1_SOURCE_BRANCH" -- "$path"
+  git checkout "$SOURCE_REF" -- "$path"
 done < "$FILELIST"
 
-echo "T5UID1 sync applied from $ORIGIN_REMOTE/$T5UID1_SOURCE_BRANCH on top of $UPSTREAM_REMOTE/$UPSTREAM_BRANCH"
+echo "T5UID1 sync applied from $SOURCE_REF on top of $UPSTREAM_REMOTE/$UPSTREAM_BRANCH"

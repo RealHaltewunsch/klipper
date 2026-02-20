@@ -2,6 +2,11 @@ name: T5UID1 auto-sync
 
 on:
   workflow_dispatch:
+    inputs:
+      t5uid1_source_branch:
+        description: "Optional override for T5UID1 source branch"
+        required: false
+        type: string
   schedule:
     - cron: "17 3 * * *"
 
@@ -11,11 +16,14 @@ permissions:
 
 jobs:
   sync:
+    concurrency:
+      group: t5uid1-autosync-${{ github.repository }}
+      cancel-in-progress: false
     runs-on: ubuntu-22.04
     env:
       TARGET_BRANCH: ${{ github.event.repository.default_branch }}
       UPSTREAM_BRANCH: main
-      T5UID1_SOURCE_BRANCH: t5uid1-port
+      T5UID1_SOURCE_BRANCH: ${{ inputs.t5uid1_source_branch || 't5uid1-port' }}
     steps:
       - name: Checkout target branch
         uses: actions/checkout@v4
@@ -30,14 +38,32 @@ jobs:
 
       - name: Add and fetch upstream
         run: |
-          git remote add upstream https://github.com/Klipper3d/klipper.git
+          if git remote get-url upstream >/dev/null 2>&1; then
+            git remote set-url upstream https://github.com/Klipper3d/klipper.git
+          else
+            git remote add upstream https://github.com/Klipper3d/klipper.git
+          fi
           git fetch upstream $UPSTREAM_BRANCH
-          git fetch origin $T5UID1_SOURCE_BRANCH
+          git fetch origin "$T5UID1_SOURCE_BRANCH" || true
 
       - name: Re-apply T5UID1 patch set
         run: ./scripts/t5uid1_sync.sh
 
+      - name: Detect sync changes
+        id: changes
+        run: |
+          if git diff --quiet "origin/$TARGET_BRANCH"...HEAD; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: No changes detected
+        if: steps.changes.outputs.has_changes != 'true'
+        run: echo "No upstream/T5UID1 changes detected; skipping PR creation."
+
       - name: Create Pull Request
+        if: steps.changes.outputs.has_changes == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
           base: ${{ env.TARGET_BRANCH }}

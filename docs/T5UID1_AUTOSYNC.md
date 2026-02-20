@@ -23,7 +23,9 @@ Ablauf:
 2. Fetch von Upstream-Branch (`UPSTREAM_BRANCH`, Default: `main`)
 3. Merge von Upstream in den Arbeitsstand
 4. Selektives Checkout der T5UID1-Dateien aus `T5UID1_SOURCE_BRANCH`
-5. Öffnen/Aktualisieren eines PRs `bot/t5uid1-autosync`
+   (Fallback auf `TARGET_BRANCH`, falls der Source-Branch im Fork fehlt)
+5. PR-Erstellung nur wenn es echte Änderungen gegenüber `origin/TARGET_BRANCH` gibt
+6. Öffnen/Aktualisieren eines PRs `bot/t5uid1-autosync`
 
 ## Wichtige Voraussetzung
 
@@ -37,3 +39,9 @@ Du kannst Branches direkt im Workflow über die `env`-Werte ändern:
 - `TARGET_BRANCH`
 - `UPSTREAM_BRANCH`
 - `T5UID1_SOURCE_BRANCH`
+
+Für manuelle Runs (`workflow_dispatch`) gibt es zusätzlich das optionale
+Input-Feld `t5uid1_source_branch`, um den Reapply-Branch ad-hoc zu überschreiben.
+
+Der Workflow nutzt außerdem `concurrency`, damit keine parallelen Sync-Läufe
+gegeneinander arbeiten.
