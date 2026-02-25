@@ -57,40 +57,12 @@
       AVR_SERIAL_REG(USART, CONFIG_T5UID1_SERIAL_PORT, _UDRE_vect)
 #endif
 
-#define T5UID1_UBRR(baud, cm) \
-    (DIV_ROUND_CLOSEST(CONFIG_CLOCK_FREQ, (cm) * (baud)) - 1UL)
-
-static uint16_t
-calc_t5uid1_ubrr(uint32_t baud)
-{
-#if CONFIG_SERIAL_BAUD_U2X
-    const uint32_t cm = 8UL;
-#else
-    const uint32_t cm = 16UL;
-#endif
-    switch (baud) {
-    case 1200: return T5UID1_UBRR(1200UL, cm);
-    case 2400: return T5UID1_UBRR(2400UL, cm);
-    case 4800: return T5UID1_UBRR(4800UL, cm);
-    case 9600: return T5UID1_UBRR(9600UL, cm);
-    case 19200: return T5UID1_UBRR(19200UL, cm);
-    case 38400: return T5UID1_UBRR(38400UL, cm);
-    case 57600: return T5UID1_UBRR(57600UL, cm);
-    case 115200: return T5UID1_UBRR(115200UL, cm);
-    case 230400: return T5UID1_UBRR(230400UL, cm);
-    case 250000: return T5UID1_UBRR(250000UL, cm);
-    case 460800: return T5UID1_UBRR(460800UL, cm);
-    case 500000: return T5UID1_UBRR(500000UL, cm);
-    case 921600: return T5UID1_UBRR(921600UL, cm);
-    default: return T5UID1_UBRR(115200UL, cm);
-    }
-}
-
 void
 t5uid1_init(uint32_t baud)
 {
     UCSRxA = CONFIG_SERIAL_BAUD_U2X ? (1<<U2Xx) : 0;
-    UBRRx = calc_t5uid1_ubrr(baud);
+    uint32_t cm = CONFIG_SERIAL_BAUD_U2X ? 8 : 16;
+    UBRRx = DIV_ROUND_CLOSEST(CONFIG_CLOCK_FREQ, cm * baud) - 1UL;
     UCSRxC = (1<<UCSZx1) | (1<<UCSZx0);
     UCSRxB = (1<<RXENx) | (1<<TXENx) | (1<<RXCIEx) | (1<<UDRIEx);
 }
